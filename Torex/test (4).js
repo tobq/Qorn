@@ -1,0 +1,1 @@
+console.log(require("bencode").decode(require("fs").readFileSync("./ub.torrent","ascii")))
