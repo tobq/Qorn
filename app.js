@@ -10,7 +10,7 @@ const mime = require('mime'),
     PORT = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 80,
     client = new Torex({
         port: PORT,
-        address: OPENSHIFT_NODEJS_PORT || "127.0.0.1",
+        address: process.env.OPENSHIFT_NODEJS_IP || "127.0.0.1",
     }, function () {
 
         http.createServer((req, res) => {
