@@ -7,7 +7,7 @@ const mime = require('mime'),
     path = require("path"),
     fs = require("fs"),
     streams = {},
-    port = process.env.PORT || 80;
+    port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 80;
 
 http.createServer((req, res) => {
     let filename = url.parse(req.url).pathname;
