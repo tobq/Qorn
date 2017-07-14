@@ -50,7 +50,7 @@ class Client /*extends require('stream').Writable*/ {
                 delete this.sent[tid];
             }
         });
-        this.UDP.bind(this.port);
+        this.UDP.bind(this.port, opts.address);
         this.send(Buffer.allocUnsafe(16).fill(0), function (x) {
             this.connectionID = x.slice(8, 16);
             this._ready = true;
