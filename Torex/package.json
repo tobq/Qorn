@@ -8,6 +8,7 @@
   "author": "tobq",
   "license": "ISC",
   "dependencies": {
-    "bencode": "^0.12.0"
+    "bencode": "^0.12.0",
+    "bitfield": "^1.1.2"
   }
 }
