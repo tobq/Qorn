@@ -33,7 +33,7 @@ class Client /*extends require('stream').Writable*/ {
         if (opts.port) {
             if (isNaN(opts.port)) return new Error("Invalid port");
             else this.port = opts.port;
-        } else this.port = 56462;
+        } else this.port = 80;
 
         this.UDP = dgram.createSocket('udp4');
         this.UDP.on('error', err => {
