@@ -2,7 +2,7 @@
 
 const dgram = require('dgram');
 const crypto = require("crypto");
-const Torrent = require("./Torrent");
+const Torrent = require("./torrent");
 
 class Client /*extends require('stream').Writable*/ {
     constructor(opts, cb) {
