@@ -5,7 +5,7 @@ const bencode = require("bencode");
 const BitField = require("bitfield")
 
 class Peer {
-    constructor(peer, torrent) {
+    constructor(peer, torrent, getInfo = false) {
         if (!torrent) throw new Error("A Peer must be initialised with a Torrent");
         this._torrent = torrent;
         this.IP = peer.slice(0, 4).join(".");
@@ -25,6 +25,7 @@ class Peer {
         this.connection.on('error', this.destroy.bind(this));
         this.connection.on('data', this._dataCB.bind(this));
         this.connection.on('close', this.destroy.bind(this));
+        this.getInfo = getInfo;
         this.connection.connect(this.port, this.IP, this._connectCB.bind(this));
     }
 }
@@ -39,6 +40,7 @@ Peer.prototype.destroy = function () {
     this._torrent._peerDestroyCB(this.IP);
     this.connection.destroy();
     clearInterval(this.keepAlive);
+    //console.log("TCP - Closed:", this.IP, ">>",Object.keys(this._torrent.peers).length,"left");
     this.choked = this._torrent = this.buffer = this.metadata = null;
 }
 Peer.prototype.send = function (code, data) {
@@ -71,16 +73,20 @@ Peer.prototype._dataCB = function (data) {
                 data = this.buffer.slice(5, 4 + length);
             this.buffer = this.buffer.slice(4 + length);
             //console.log("TCP - Received:", this.IP + ":" + this.port, "::", code);
-            //console.log("----------------------------", code);
+            //console.log("------------------------", code);
             if (code === 0) this.choked = true;
             else if (code === 1) this.choked = false;
-            else if (code === 4) this.bitField.set(data.readUInt32BE());
+            else if (code === 4) this.bitField.set(data.length || data.readUInt32BE());
             else if (code === 5) this.bitField = new BitField(data, { grow: Infinity });
             else if (code === 7) {
                 let piece = data.readUInt32BE(0),
-                    offset = data.readUInt32BE(4);
-                data = data.slice(8);
-                console.log(this.IP, "GAVE:", piece, offset, data.length);
+                    offset = data.readUInt32BE(4),
+                    block = data.slice(8);
+
+                let cancel = Buffer.allocUnsafe(12);
+                data.copy(cancel, 0, 0, 8);
+                cancel.writeInt32BE(block.length, 8);
+                for (let IP in this._torrent.peers) this._torrent.peers[IP].send(8, cancel);
 
                 for (var IP in this._torrent._pipes) {
                     let pipe = this._torrent._pipes[IP];
@@ -92,22 +98,26 @@ Peer.prototype._dataCB = function (data) {
                             return delete this.res;
                         }
                         pipe.received = true;
-                        pipe.res.write(data.slice(0, 1 + pipe.end - pipe.start));
-                        return data.length + pipe.start > pipe.end ?
-                            pipe.res.end() : this._torrent._stream(IP, pipe.start + data.length);
+                        //process.stdout.write(" *");
+                        //console.log(this.IP, "GAVE:", piece, offset, block.length);
+                        pipe.res.write(block);
+                        block.length + pipe.start > pipe.end ?
+                            pipe.res.end() : this._torrent._stream(IP, pipe.start + block.length);
                     }
                 }
             }
             else if (code === 20) {
                 code = data[0];
                 //console.log("Extended - Received:", this.IP + ":" + this.port, "::", code);
-                let extended = bencode.decode(data.slice(1));
+                let extended;
+                try { extended = bencode.decode(data.slice(1)); }
+                catch (e) { return };
                 if (code === 0) { // Handshake
                     this.sendExt(0, {
                         m: this._extensions,
                         v: Buffer.from("H31l0o")
                     });
-                    if (extended.m.ut_metadata && extended.metadata_size > 0) {
+                    if (this.getInfo && extended.m.ut_metadata && extended.metadata_size > 0) {
                         this.metadata = Buffer.allocUnsafe(extended.metadata_size);
                         this.remaining = Math.ceil(extended.metadata_size / 2 ** 14);
                         for (let i = this.remaining; i--;)

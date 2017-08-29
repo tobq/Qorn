@@ -211,3 +211,22 @@ input, button {
     height: 30px;
     width: 30px;
 }
+
+#timeline {
+    position: absolute;
+    left: 65px;
+    right: 65px;
+    top: 0px;
+    bottom: 0px;
+    height: 6px;
+    margin: auto;
+    background: #666;
+    transition: height 0.3s ease;
+}
+#timeline:hover {
+    height: 8px;
+}
+#elapsed {
+    height: 100%;
+    background: #CCC;
+}

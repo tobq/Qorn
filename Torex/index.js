@@ -60,8 +60,8 @@ class Client /*extends require('stream').Writable*/ {
 
     addTorrent(h, cb) {
         if (!this._ready) throw new Error("Client must finish starting before you can torrents.\nSet a callback: new Client([options],*cb*).\n\n");
-        this.torrents[h] = new Torrent(h, null, this);
-        this.refreshPeers(h, function (err, h) {
+        this.torrents[h] = new Torrent(h, this);
+        this.torrents[h].refreshPeers(function (err, h) {
             if (err) {
                 cb(err);
                 return this.torrents[h].destroy();
@@ -69,34 +69,6 @@ class Client /*extends require('stream').Writable*/ {
             this.torrents[h].on("ready", cb);
         }.bind(this));
         return this.torrents[h];
-    }
-    refreshPeers(h, cb) {
-        let announce = Buffer.allocUnsafe(98);
-
-        if (!(h in this.torrents)) return;
-        announce.writeIntBE(1, 8, 4, true); // action
-        announce.fill(h, 16, 36, "hex"); // info hash
-        announce.fill(this.ID, 36, 56, "ascii"); // peer id
-        announce.writeIntBE(0, 56, 8, true); // downloaded
-        announce.writeIntBE(0, 64, 8, true); // left
-        announce.writeIntBE(0, 72, 8, true); // uploaded
-        announce.writeIntBE(0, 80, 4, true); // event
-        announce.writeIntBE(0, 84, 4, true); // IP
-        announce.writeIntBE(0, 88, 4, true); // key
-        announce.writeIntBE(50, 92, 4, true); // num_want
-        announce.writeUIntBE(0, 96, 2, true); // port
-
-        this.send(announce, function (msg) {
-            let peers = msg.slice(20);
-            console.log(`\n ${peers.length / 6}  Peers Found\n`);
-            if (peers.length === 0) {
-                if (cb) cb(new Error("NO PEERS FOUND"), h);
-                return;
-            }
-            for (let i = 0; i < peers.length; i += 6) this.torrents[h].addPeer(peers.slice(i, i + 6));
-            if (cb) cb(null, h);
-        }.bind(this));
-        console.log("UDP - Fetching Peers ::", h);
     }
 
     send(buff, cb) {
