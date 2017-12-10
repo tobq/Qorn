@@ -144,7 +144,7 @@ function search(q, cb, trusted, host, proxy) {
 			raw = res.responseText.split('<a href="/torrent/');
 
 		for (var i = 1; i < raw.length; i++) {
-			if (trusted || false && raw[i].indexOf('title="VIP"') === -1) continue;
+			if (trusted && raw[i].indexOf('title="VIP"') === -1) continue;
 			var data = [],
 				magnet = "",
 				val = "",
